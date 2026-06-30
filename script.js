@@ -15,33 +15,32 @@ const types=[
 {id:'STTL',name:'慎重のカメ',sub:'確かな一歩の旅人',img:'kame.jpeg'},
 {id:'IFDU',name:'深海のクジラ',sub:'静かな哲学者',img:'kujira.jpeg'},
 {id:'EHDV2',name:'献身のシバイヌ',sub:'頼れるサポーター',img:'shiba.jpeg'}];
+const axisTypeMap=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
 const questions=[
-'人の輪に入り、空気をやわらかくするのが得意だ',
-'相手の気持ちの変化にすぐ気づく',
-'困っている人を見ると、自然に手を差しのべたくなる',
-'計画を立てて、みんなを前に進めるのが得意だ',
-'新しい希望やアイデアを考えるとわくわくする',
-'強く引っぱるより、自然に寄り添う方が自分らしい',
-'静かな場所で、人や物事をじっくり見守る方が落ち着く',
-'正しいと思うことは、時間がかかっても守りたい',
-'一度決めたことは、最後までこつこつ続けられる',
-'相手を受け止める安心感を大切にしている',
-'小さな変化や違和感に気づきやすい',
-'約束や信頼をかなり大切にする',
-'人を安心させる言葉や空気づくりをよく選ぶ',
-'急がず慎重に判断する方だ',
-'深く考えてから動くことが多い',
-'誰かの支えになると、自分にも力がわいてくる'
+{text:'みんなと話しながら考えると、自分らしい答えが見つかりやすい',axis:0,dir:1},
+{text:'にぎやかな場では、自分から空気を明るくすることが多い',axis:0,dir:1},
+{text:'一人で静かに考える時間があると、心が整いやすい',axis:0,dir:-1},
+{text:'深く集中してから動く方が、自分の力を出しやすい',axis:0,dir:-1},
+{text:'相手の気持ちを想像して、まず寄り添うことを大切にする',axis:1,dir:1},
+{text:'場の空気や心の動きに、自然と目が向きやすい',axis:1,dir:1},
+{text:'状況を整理して、必要な役割や段取りを考えるのが得意だ',axis:1,dir:-1},
+{text:'困ったときほど、感情よりも手順や仕組みを整えたくなる',axis:1,dir:-1},
+{text:'まだ見えていない可能性や未来の展開を考えるのが好きだ',axis:2,dir:1},
+{text:'新しいアイデアや希望を見つけると、気持ちが前に向く',axis:2,dir:1},
+{text:'慣れたやり方や信頼できる約束を大事にしたい',axis:2,dir:-1},
+{text:'急な変化より、確かな一歩を積み重ねる方が落ち着く',axis:2,dir:-1},
+{text:'誰かのそばで支えることに、自分のやさしさが出やすい',axis:3,dir:1},
+{text:'人の安心や回復を助ける役に、自然となることが多い',axis:3,dir:1},
+{text:'必要なときは前に立って、方向性を示すことができる',axis:3,dir:-1},
+{text:'大切なものを守るためなら、責任を持って導きたい',axis:3,dir:-1}
 ];
-let idx=0,score=Array(types.length).fill(0),history=[];
+let idx=0,axes=[0,0,0,0],history=[];
 const answerLabels=['とても当てはまる','少し当てはまる','どちらともいえない','あまり当てはまらない','当てはまらない'];
-function scoreTargets(questionIndex,answerIndex){const base=(questionIndex+answerIndex*3)%types.length;return [base,(base+5)%types.length,(base+11)%types.length,(questionIndex*7+answerIndex*2)%types.length]}
-function answerWeight(answerIndex,rank){const table=[6,4,3,2];return table[rank]-(answerIndex===2&&rank>1?1:0)}
-function responseSignature(){return history.reduce((sum,item,i)=>sum+(item.answerIndex+1)*(i+3)*(i+7),0)%types.length}
+const answerValues=[2,1,0,-1,-2];
 function go(id){if(id==='book')id='animalBook';document.body.dataset.page=id;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');scrollTo(0,0);if(id==='quiz')startQuiz()}document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
-function startQuiz(){idx=0;score=Array(types.length).fill(0);history=[];renderQ()}
-function applyAnswer(questionIndex,answerIndex,direction=1){scoreTargets(questionIndex,answerIndex).forEach((typeIndex,rank)=>score[typeIndex]+=direction*answerWeight(answerIndex,rank))}
-function renderQ(){let q=questions[idx];progress.textContent=`${idx+1} / ${questions.length}`;qtext.textContent=q;answers.innerHTML='';answerLabels.forEach((t,n)=>{let b=document.createElement('button');b.textContent=t;b.onclick=()=>{applyAnswer(idx,n);history[idx]={answerIndex:n};idx++;idx<questions.length?renderQ():showResult()};answers.appendChild(b)});back.style.visibility=idx?'visible':'hidden'}
+function startQuiz(){idx=0;axes=[0,0,0,0];history=[];renderQ()}
+function applyAnswer(questionIndex,answerIndex,direction=1){let q=questions[questionIndex];axes[q.axis]+=direction*answerValues[answerIndex]*q.dir}
+function renderQ(){let q=questions[idx];progress.textContent=`${idx+1} / ${questions.length}`;qtext.textContent=q.text;answers.innerHTML='';answerLabels.forEach((t,n)=>{let b=document.createElement('button');b.textContent=t;b.onclick=()=>{applyAnswer(idx,n);history[idx]={answerIndex:n};idx++;idx<questions.length?renderQ():showResult()};answers.appendChild(b)});back.style.visibility=idx?'visible':'hidden'}
 back.onclick=()=>{if(idx>0){idx--;let previous=history[idx];if(previous)applyAnswer(idx,previous.answerIndex,-1);history.length=idx;renderQ()}};
-function showResult(){let signature=responseSignature();let adjusted=score.map((value,i)=>value+(i===signature?0.75:0)+(((signature+i*3)%7)*0.01));let max=adjusted.indexOf(Math.max(...adjusted));let t=types[max];resultImg.src=t.img;resultImg.alt=`診断結果 ${t.name}`;go('result')}
+function showResult(){let bits=axes.map((value,i)=>value===0?(history.reduce((sum,item,index)=>sum+(index+1)*(item.answerIndex+1)*(i+2),0)%2?1:0):(value>0?1:0));let typeIndex=bits[0]*8+bits[1]*4+bits[2]*2+bits[3];let t=types[axisTypeMap[typeIndex]];resultImg.src=t.img;resultImg.alt=`診断結果 ${t.name}`;go('result')}
 const books=['animal1.jpeg','animal2.jpeg','mystery1.jpeg','mystery2.jpeg'];function showBook(i){go(i<2?'animalBook':'mysteryBook')}window.showBook=showBook;
