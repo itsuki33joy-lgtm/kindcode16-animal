@@ -1,0 +1,67 @@
+name: Apply generated result images
+
+on:
+  push:
+    paths:
+      - kindcode16-result-images.zip
+      - .github/workflows/apply-result-images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-result-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Replace result images from ZIP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          names = [
+              'rakko.jpeg',
+              'kitsune.jpeg',
+              'beaver.jpeg',
+              'iruka.jpeg',
+              'hakucho.jpeg',
+              'fukuro.jpeg',
+              'ookami.jpeg',
+              'zou.jpeg',
+              'koala.jpeg',
+              'harinezumi.jpeg',
+              'risu.jpeg',
+              'usagi.jpeg',
+              'kame.jpeg',
+              'kujira.jpeg',
+              'shiba.jpeg',
+          ]
+
+          zip_path = Path('kindcode16-result-images.zip')
+          if not zip_path.exists():
+              raise SystemExit('kindcode16-result-images.zip was not found')
+
+          with ZipFile(zip_path) as zf:
+              available = set(zf.namelist())
+              missing = [name for name in names if name not in available]
+              if missing:
+                  raise SystemExit('Missing files in ZIP: ' + ', '.join(missing))
+              for name in names:
+                  Path(name).write_bytes(zf.read(name))
+          PY
+
+      - name: Commit replacement images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rakko.jpeg kitsune.jpeg beaver.jpeg iruka.jpeg hakucho.jpeg fukuro.jpeg ookami.jpeg zou.jpeg koala.jpeg harinezumi.jpeg risu.jpeg usagi.jpeg kame.jpeg kujira.jpeg shiba.jpeg
+          if git diff --cached --quiet; then
+            echo "No image changes to commit."
+          else
+            git commit -m "Replace diagnosis result images"
+            git push
+          fi
